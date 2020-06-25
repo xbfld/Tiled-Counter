@@ -1,0 +1,54 @@
+/* CSS files add styling rules to your content */
+@font-face {
+  font-family: "D2Coding";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/D2Coding.woff")
+    format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: D2Coding, helvetica, arial, sans-serif;
+  margin: 2em;
+  text-align: center;
+}
+
+#contents,
+#rightwing {
+  margin: 1em;
+  float: left;
+}
+
+#rightwing {
+  font-size: 2em;
+  text-align: center;
+}
+
+h1 {
+  font-style: normal;
+  color: #33333d;
+}
+
+.center {
+  margin: auto;
+  display: block;
+  text-align: center;
+  margin-top: 5pt;
+  margin-bottom: 5pt;
+}
+
+.button {
+  background-color: #555555;
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  cursor: pointer;
+  margin: auto;
+}
+
+.button1 {
+  font-size: 1em;
+  color: white;
+  background-color: #008CBA;
+}
