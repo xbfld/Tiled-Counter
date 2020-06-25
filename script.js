@@ -64,6 +64,18 @@ Cursor.prototype.draw = function() {
 };
 
 var cursor = new Cursor(1, 2);
+function getNextTo(i,j){
+  var result=[]
+  function isOutOfBound(i,j){
+    return i<0||j<0||i>=boardsize.col||j>=boardsize.row
+  }
+  if (isOutOfBound(i,j)){return result}
+  if (!isOutOfBound(i+1,j)){result.push([i+1,j])}
+  if (!isOutOfBound(i-1,j)){result.push([i-1,j])}
+  if (!isOutOfBound(i,j+1)){result.push([i,j+1])}
+  if (!isOutOfBound(i,j-1)){result.push([i,j-1])}
+  return result
+}
 
 function draw() {
   let ctx = canvas.getContext("2d");
