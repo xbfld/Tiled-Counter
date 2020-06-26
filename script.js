@@ -1,38 +1,58 @@
-/* If you're feeling fancy you can add interactivity 
-    to your site with Javascript */
-
-// prints "hi" in the browser's dev tools console
 const canvas = document.getElementById("canvas");
 var tilesize = { w: 50, h: 50 };
 var boardsize = { col: 4, row: 4 };
 
-function Tile(i, j, infotext = `${i}.${j}`) {
-  this.i = i;
-  this.j = j;
-  this.infotext = infotext;
+class Tile {
+  constructor(i, j, infotext = `${i}.${j}`) {
+    this.i = i;
+    this.j = j;
+    this.infotext = infotext;
+  }
+  getTopleft() {
+    let canvasCenter = [canvas.width / 2, canvas.height / 2];
+    let tileIndex = [this.i, this.j];
+    let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
+    let tileSize = [tilesize.w, tilesize.h];
+
+    let indexOffset = [0, 1].map(i => tileIndex[i] - boardHalfway[i]);
+    let offset = [0, 1].map(i => indexOffset[i] * tileSize[i]);
+    let pos = [0, 1].map(i => canvasCenter[i] + offset[i]);
+    return pos
+  }
+
+  //shrink half-margin for all sides
+  getBox(margin) {
+    let [x, y] = this.getTopleft()
+    return [
+      x + margin / 2,
+      y + margin / 2,
+      tilesize.w - margin,
+      tilesize.h - margin
+    ]
+  }
+  getCenter() {
+    let tileSize = [tilesize.w, tilesize.h];
+    let pos = this.getTopleft()
+    return [0, 1].map(i => pos[i] + tileSize[i] / 2);
+  }
+  draw() {
+    let margin = 10;
+    let [x, y] = this.getTopleft()
+    let box = this.getBox(margin)
+    let ctx = canvas.getContext("2d");
+    ctx.fillStyle = "lightgreen";
+    ctx.strokeStyle = "black";
+    ctx.strokeRect(...box);
+    ctx.font = "10px D2Coding";
+    ctx.textBaseline = "bottom";
+    ctx.textAlign = "left";
+    ctx.fillText(this.infotext, ...box.slice(0,2));
+    ctx.font = "30px D2Coding";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CD", ...this.getCenter());
+  }
 }
-Tile.prototype.draw = function() {
-  let margin = 10;
-  let x = canvas.width / 2 + (this.i - boardsize.col / 2) * tilesize.w;
-  let y = canvas.height / 2 + (this.j - boardsize.row / 2) * tilesize.h;
-  let ctx = canvas.getContext("2d");
-  ctx.fillStyle = "lightgreen";
-  ctx.strokeStyle = "black";
-  ctx.strokeRect(
-    x + margin / 2,
-    y + margin / 2,
-    tilesize.w - margin,
-    tilesize.h - margin
-  );
-  ctx.font = "10px D2Coding";
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.fillText(this.infotext, x + margin / 2, y - margin / 2);
-  ctx.font = "30px D2Coding";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("CD", x + tilesize.w / 2, y + tilesize.h / 2);
-};
 
 var tiles = [];
 function range(n) {
@@ -44,36 +64,38 @@ range(boardsize.col).forEach(i => {
   });
 });
 
-function Cursor(i, j, strokeStyle="lime") {
-  this.i = i;
-  this.j = j;
-  this.strokeStyle = strokeStyle
+class Cursor {
+  constructor(i, j, strokeStyle = "lime") {
+    this.i = i;
+    this.j = j;
+    this.strokeStyle = strokeStyle;
+  }
+  draw() {
+    let margin = 10;
+    let x = canvas.width / 2 + (this.i - boardsize.col / 2) * tilesize.w;
+    let y = canvas.height / 2 + (this.j - boardsize.row / 2) * tilesize.h;
+    let ctx = canvas.getContext("2d");
+    ctx.strokeStyle = this.strokeStyle;
+    ctx.strokeRect(
+      x + margin / 2 + margin / 2 / 2,
+      y + margin / 2 + margin / 2 / 2,
+      tilesize.w - margin - margin / 2,
+      tilesize.h - margin - margin / 2
+    );
+  }
 }
-Cursor.prototype.draw = function() {
-  let margin = 10;
-  let x = canvas.width / 2 + (this.i - boardsize.col / 2) * tilesize.w;
-  let y = canvas.height / 2 + (this.j - boardsize.row / 2) * tilesize.h;
-  let ctx = canvas.getContext("2d");
-  ctx.strokeStyle = this.strokeStyle;
-  ctx.strokeRect(
-    x + margin / 2 + margin / 2 / 2,
-    y + margin / 2 + margin / 2 / 2,
-    tilesize.w - margin - margin / 2,
-    tilesize.h - margin - margin / 2
-  );
-};
 
 var cursor = new Cursor(1, 2);
-function getNextTo(i,j){
-  var result=[]
-  function isOutOfBound(i,j){
-    return i<0||j<0||i>=boardsize.col||j>=boardsize.row
+function getNextTo(i, j) {
+  var result = []
+  function isOutOfBound(i, j) {
+    return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
   }
-  if (isOutOfBound(i,j)){return result}
-  if (!isOutOfBound(i+1,j)){result.push([i+1,j])}
-  if (!isOutOfBound(i-1,j)){result.push([i-1,j])}
-  if (!isOutOfBound(i,j+1)){result.push([i,j+1])}
-  if (!isOutOfBound(i,j-1)){result.push([i,j-1])}
+  if (isOutOfBound(i, j)) { return result }
+  if (!isOutOfBound(i + 1, j)) { result.push([i + 1, j]) }
+  if (!isOutOfBound(i - 1, j)) { result.push([i - 1, j]) }
+  if (!isOutOfBound(i, j + 1)) { result.push([i, j + 1]) }
+  if (!isOutOfBound(i, j - 1)) { result.push([i, j - 1]) }
   return result
 }
 
@@ -94,19 +116,19 @@ function update() {
 }
 
 var controller = {};
-controller.stepRight = function() {
+controller.stepRight = function () {
   cursor.i += 1;
 };
-controller.stepLeft = function() {
+controller.stepLeft = function () {
   cursor.i -= 1;
 };
-controller.stepUp = function() {
+controller.stepUp = function () {
   cursor.j -= 1;
 };
-controller.stepDown = function() {
+controller.stepDown = function () {
   cursor.j += 1;
 };
-controller.stepX = function() {};
+controller.stepX = function () { };
 
 window.setInterval(update, 50);
 
