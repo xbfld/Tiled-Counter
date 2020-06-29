@@ -20,10 +20,11 @@ body {
 }
 
 #rightwing {
-    font-size: 1.5em;
+    font-size: 1.8em;
     text-align: left;
 }
 .past{
+    font-size: 0.75em;
     float: left;
     color: #002005;
 }
@@ -32,10 +33,11 @@ body {
 }
 
 .now {
-    color: #00c42a;
+    color: #00a3cc;
 }
 .next {
-    color: #0026ff;
+    font-size: 0.75em;
+    color: #3b58fd;
 }
 
 h1 {
