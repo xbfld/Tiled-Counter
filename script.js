@@ -143,7 +143,7 @@ function renderRomanNumeral(n) {
 
 function* getNextCount() {
   let now = 1;
-  let separator = '□'
+  let separator = '#'
   while (1) {
     yield renderRomanNumeral(now) + separator
     now += 1
@@ -151,8 +151,10 @@ function* getNextCount() {
 }
 var counter = getNextCount()
 var level = ['Start!',counter.next().value,counter.next().value]
-var state = { mylevel: 1, step: 0 }
-var stateLog = [state]
+const levelStart = 1
+const initialState = { mylevel: levelStart, step: 0 }
+var state = {...initialState}
+var stateLog = [{...state}]
 
 const progression = document.getElementById('progression');
 
@@ -197,10 +199,14 @@ controller.nextStep = function () {
   // if (state.mylevel == level.length) {
   //   level.push(counter.next().value)
   // }
+  stateLog.push({...state})
   renderProgress()
 }
 controller.rollBack = function () {
-
+  stateLog.pop()
+  if (stateLog.length==0) {stateLog.push(initialState)}
+  state = {...stateLog[stateLog.length-1]}
+  renderProgress()
 }
 
 window.setInterval(update, 50);
