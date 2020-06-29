@@ -2,15 +2,10 @@ const canvas = document.getElementById("canvas");
 var tilesize = { w: 50, h: 50 };
 var boardsize = { col: 4, row: 4 };
 
-class Tile {
-  constructor(i, j, infotext = `${i}.${j}`) {
-    this.i = i;
-    this.j = j;
-    this.infotext = infotext;
-  }
-  getTopleft() {
+class GridBox {
+  getTopleft(tileIndex) {
     let canvasCenter = [canvas.width / 2, canvas.height / 2];
-    let tileIndex = [this.i, this.j];
+    // let tileIndex = [this.i, this.j];
     let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
     let tileSize = [tilesize.w, tilesize.h];
 
@@ -30,6 +25,18 @@ class Tile {
       tilesize.h - margin
     ]
   }
+}
+
+class Tile extends GridBox {
+  constructor(i, j, infotext = `${i}.${j}`) {
+    super();
+    this.i = i;
+    this.j = j;
+    this.infotext = infotext;
+  }
+  getTopleft(){
+    return super.getTopleft([this.i,this.j])
+  }
   getCenter() {
     let tileSize = [tilesize.w, tilesize.h];
     let pos = this.getTopleft()
@@ -46,7 +53,7 @@ class Tile {
     ctx.font = "10px D2Coding";
     ctx.textBaseline = "bottom";
     ctx.textAlign = "left";
-    ctx.fillText(this.infotext, ...box.slice(0,2));
+    ctx.fillText(this.infotext, ...box.slice(0, 2));
     ctx.font = "30px D2Coding";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -64,24 +71,23 @@ range(boardsize.col).forEach(i => {
   });
 });
 
-class Cursor {
+class Cursor extends GridBox {
   constructor(i, j, strokeStyle = "lime") {
+    super();
     this.i = i;
     this.j = j;
     this.strokeStyle = strokeStyle;
   }
+  getTopleft(){
+    return super.getTopleft([this.i,this.j])
+  }
   draw() {
-    let margin = 10;
-    let x = canvas.width / 2 + (this.i - boardsize.col / 2) * tilesize.w;
-    let y = canvas.height / 2 + (this.j - boardsize.row / 2) * tilesize.h;
+    let margin = 15;
+    let [x, y] = this.getTopleft()
+    let box = this.getBox(margin)
     let ctx = canvas.getContext("2d");
     ctx.strokeStyle = this.strokeStyle;
-    ctx.strokeRect(
-      x + margin / 2 + margin / 2 / 2,
-      y + margin / 2 + margin / 2 / 2,
-      tilesize.w - margin - margin / 2,
-      tilesize.h - margin - margin / 2
-    );
+    ctx.strokeRect(...box);
   }
 }
 
