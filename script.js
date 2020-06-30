@@ -71,6 +71,7 @@ class Cursor extends GridBox {
   }
 }
 var cursor = { pos: [0, 0] }
+var cursorLog = []
 
 var tiles = new Map();
 function range(n) {
@@ -82,7 +83,7 @@ var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
 function puzzleImport(puzzle) {
   boardsize.col = +puzzle[0]
   boardsize.row = +puzzle[1]
-  cursor.pos = [+puzzle[2],+puzzle[3]]
+  cursor.pos = [+puzzle[2], +puzzle[3]]
   let board = puzzle.slice(4)
   range(boardsize.col).forEach(i => {
     range(boardsize.row).forEach(j => {
@@ -163,24 +164,50 @@ const progression = document.getElementById('progression');
 
 var controller = {};
 controller.stepRight = function () {
-  cursor.pos[0] += 1;
+  controller.stepX('right')
 };
 controller.stepLeft = function () {
-  cursor.pos[0] -= 1;
+  controller.stepX('left')
 };
 controller.stepUp = function () {
-  cursor.pos[1] -= 1;
+  controller.stepX('up')
 };
 controller.stepDown = function () {
-  cursor.pos[1] += 1;
+  controller.stepX('down')
 };
-controller.stepX = function () { };
+controller.stepX = function (direction) {
+  let pos = [...cursor.pos]
+  switch (direction) {
+    case 'right':
+      pos[0] += 1
+      break;
+    case 'left':
+      pos[0] -= 1
+      break;
+    case 'up':
+      pos[1] -= 1
+      break;
+    case 'down':
+      pos[1] += 1
+      break;
+  }
+  if (isOutOfBound(...pos)
+    || level[state.mylevel][state.step] != tiles.get(`${pos[0]}.${pos[1]}`).tiletext) {
+    console.log('Nope!')
+  }
+  else {
+    cursorLog.push([...cursor.pos])
+    cursor.pos = pos
+    controller.nextStep()
+  }
+};
 
 function renderProgress() {
   let mylevel = state.mylevel
   let pastText = level[mylevel - 1]
   let levelText = level[mylevel]
   let nextText = level[mylevel + 1]
+  document.getElementById('level').innerText = 'Level: '+mylevel
   progression.innerHTML = ''
     + `<div class='past'>Last Level: ${pastText}<br></div>`
     + `<div class='passed'>Pass: ${levelText.slice(0, state.step)}<br></div>`
@@ -209,6 +236,9 @@ controller.rollBack = function () {
   stateLog.pop()
   if (stateLog.length == 0) { stateLog.push(initialState) }
   state = { ...stateLog[stateLog.length - 1] }
+  if (cursorLog.length>0){
+    cursor.pos = cursorLog.pop()
+  }
   renderProgress()
 }
 
@@ -229,7 +259,7 @@ function keydownHandler(e) {
       controller.stepDown();
       break;
     case "Space":
-      controller.nextStep();
+      // controller.nextStep();
       break;
     case "KeyZ":
       controller.rollBack();
