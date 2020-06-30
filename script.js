@@ -1,6 +1,6 @@
 const canvas = document.getElementById("canvas");
 var tilesize = { w: 50, h: 50 };
-var boardsize = { col: 4, row: 4 };
+var boardsize = { col: 6, row: 6 };
 
 class GridBox {
   getTopleft(tileIndex) {
@@ -16,8 +16,8 @@ class GridBox {
   }
 
   //shrink half-margin for all sides
-  getBox(margin) {
-    let [x, y] = this.getTopleft()
+  getBox(margin, topleft) {
+    let [x, y] = topleft
     return [
       x + margin / 2,
       y + margin / 2,
@@ -28,15 +28,17 @@ class GridBox {
 }
 
 class Tile extends GridBox {
-  constructor(i, j, infotext = `${i}.${j}`, tiletext = '@') {
+  constructor(tiledata) {
     super();
-    this.i = i;
-    this.j = j;
-    this.infotext = infotext;
-    this.tiletext = tiletext;
+    this.pos = tiledata.pos
+    this.infotext = tiledata.infotext;
+    this.tiletext = tiledata.tiletext;
   }
   getTopleft() {
-    return super.getTopleft([this.i, this.j])
+    return super.getTopleft(this.pos)
+  }
+  getBox(margin) {
+    return super.getBox(margin, this.getTopleft())
   }
   getCenter() {
     let tileSize = [tilesize.w, tilesize.h];
@@ -62,25 +64,45 @@ class Tile extends GridBox {
   }
 }
 
-var tiles = [];
+var tiles = new Map();
 function range(n) {
   return [...Array(n).keys()];
 }
-range(boardsize.col).forEach(i => {
-  range(boardsize.row).forEach(j => {
-    tiles.push(new Tile(i, j));
+// var board1 = ''
+//   + 'I#IV##'
+//   + 'IIX###'
+//   + '#IVI##'
+//   + 'IX#I##'
+//   + '#IVI##'
+//   + 'IX#I##'
+
+var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
+var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
+function puzzleImport(puzzle){
+  boardsize.col = +puzzle[0]
+  boardsize.row = +puzzle[1]
+  cursor.i=+puzzle[2]
+  cursor.j=+puzzle[3]
+  let board = puzzle.slice(4)
+  range(boardsize.col).forEach(i => {
+    range(boardsize.row).forEach(j => {
+      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + boardsize.col * j] }
+      tiles.set(tile.infotext, new Tile(tile));
+    });
   });
-});
+}
 
 class Cursor extends GridBox {
-  constructor(i, j, strokeStyle = "lime") {
+  constructor(cursor, strokeStyle = "lime") {
     super();
-    this.i = i;
-    this.j = j;
+    this.pos = cursor.pos
     this.strokeStyle = strokeStyle;
   }
   getTopleft() {
-    return super.getTopleft([this.i, this.j])
+    return super.getTopleft(this.pos)
+  }
+  getBox(margin) {
+    return super.getBox(margin, this.getTopleft())
   }
   draw() {
     let margin = 15;
@@ -91,8 +113,8 @@ class Cursor extends GridBox {
     ctx.strokeRect(...box);
   }
 }
-
-var cursor = new Cursor(1, 2);
+var cursorData = {pos:[1,2]}
+var cursor = new Cursor(cursorData);
 function getNextTo(i, j) {
   var result = []
   function isOutOfBound(i, j) {
@@ -121,6 +143,7 @@ function draw() {
 function update() {
   draw();
 }
+puzzleImport(puzzle1)
 
 function renderRomanNumeral(n) {
   const units = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
@@ -143,18 +166,19 @@ function renderRomanNumeral(n) {
 
 function* getNextCount() {
   let now = 1;
-  let separator = '#'
+  // let separator = '■'
+  let separator = '.'
   while (1) {
     yield renderRomanNumeral(now) + separator
     now += 1
   }
 }
 var counter = getNextCount()
-var level = ['Start!',counter.next().value,counter.next().value]
+var level = ['Start!', counter.next().value, counter.next().value]
 const levelStart = 1
 const initialState = { mylevel: levelStart, step: 0 }
-var state = {...initialState}
-var stateLog = [{...state}]
+var state = { ...initialState }
+var stateLog = [{ ...state }]
 
 const progression = document.getElementById('progression');
 
@@ -175,12 +199,12 @@ controller.stepX = function () { };
 
 function renderProgress() {
   let mylevel = state.mylevel
-  let pastText = level[mylevel-1]
+  let pastText = level[mylevel - 1]
   let levelText = level[mylevel]
-  let nextText = level[mylevel+1]
-  progression.innerHTML =''
-  +`<div class='past'>Last Level: ${pastText}<br></div>`
-    +`<div class='passed'>Pass: ${levelText.slice(0, state.step)}<br></div>`
+  let nextText = level[mylevel + 1]
+  progression.innerHTML = ''
+    + `<div class='past'>Last Level: ${pastText}<br></div>`
+    + `<div class='passed'>Pass: ${levelText.slice(0, state.step)}<br></div>`
     + `<div class='now'>Left: ${levelText.slice(state.step)}<br></div>`
     + `<div class='next'>Next Level: ${nextText}</div>`
 }
@@ -199,13 +223,13 @@ controller.nextStep = function () {
   // if (state.mylevel == level.length) {
   //   level.push(counter.next().value)
   // }
-  stateLog.push({...state})
+  stateLog.push({ ...state })
   renderProgress()
 }
 controller.rollBack = function () {
   stateLog.pop()
-  if (stateLog.length==0) {stateLog.push(initialState)}
-  state = {...stateLog[stateLog.length-1]}
+  if (stateLog.length == 0) { stateLog.push(initialState) }
+  state = { ...stateLog[stateLog.length - 1] }
   renderProgress()
 }
 
