@@ -3,7 +3,7 @@ var tilesize = { w: 50, h: 50 };
 var boardsize = { col: 6, row: 6 };
 
 class GridBox {
-  getTopleft(tileIndex) {
+  static getTopleft(tileIndex) {
     let canvasCenter = [canvas.width / 2, canvas.height / 2];
     // let tileIndex = [this.i, this.j];
     let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
@@ -16,7 +16,7 @@ class GridBox {
   }
 
   //shrink half-margin for all sides
-  getBox(margin, topleft) {
+  static getBox(margin, topleft) {
     let [x, y] = topleft
     return [
       x + margin / 2,
@@ -28,27 +28,19 @@ class GridBox {
 }
 
 class Tile extends GridBox {
-  constructor(tiledata) {
-    super();
-    this.pos = tiledata.pos
-    this.infotext = tiledata.infotext;
-    this.tiletext = tiledata.tiletext;
+  static getBox(margin, pos) {
+    return super.getBox(margin, this.getTopleft(pos))
   }
-  getTopleft() {
-    return super.getTopleft(this.pos)
-  }
-  getBox(margin) {
-    return super.getBox(margin, this.getTopleft())
-  }
-  getCenter() {
+  static getCenter(pos) {
     let tileSize = [tilesize.w, tilesize.h];
-    let pos = this.getTopleft()
-    return [0, 1].map(i => pos[i] + tileSize[i] / 2);
+    let topleft = this.getTopleft(pos)
+    return [0, 1].map(i => topleft[i] + tileSize[i] / 2);
   }
-  draw() {
+  static draw(tiledata) {
+    let { pos: pos, infotext: infotext, tiletext: tiletext } = tiledata
     let margin = 10;
-    let [x, y] = this.getTopleft()
-    let box = this.getBox(margin)
+    let [x, y] = this.getTopleft(pos)
+    let box = this.getBox(margin, pos)
     let ctx = canvas.getContext("2d");
     ctx.fillStyle = "lightgreen";
     ctx.strokeStyle = "black";
@@ -56,70 +48,57 @@ class Tile extends GridBox {
     ctx.font = "10px D2Coding";
     ctx.textBaseline = "bottom";
     ctx.textAlign = "left";
-    ctx.fillText(this.infotext, ...box.slice(0, 2));
+    ctx.fillText(infotext, ...box.slice(0, 2));
     ctx.font = "30px D2Coding";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.tiletext, ...this.getCenter());
+    ctx.fillText(tiletext, ...this.getCenter(pos));
   }
 }
+
+class Cursor extends GridBox {
+  static getBox(margin, pos) {
+    return GridBox.getBox(margin, this.getTopleft(pos))
+  }
+  static draw(cursor) {
+    let pos = cursor.pos
+    let margin = 15;
+    let [x, y] = this.getTopleft(pos)
+    let box = this.getBox(margin, pos)
+    let ctx = canvas.getContext("2d");
+    ctx.strokeStyle = cursor.strokeStyle || "lime";
+    ctx.strokeRect(...box);
+  }
+}
+var cursor = { pos: [0, 0] }
 
 var tiles = new Map();
 function range(n) {
   return [...Array(n).keys()];
 }
-// var board1 = ''
-//   + 'I#IV##'
-//   + 'IIX###'
-//   + '#IVI##'
-//   + 'IX#I##'
-//   + '#IVI##'
-//   + 'IX#I##'
 
 var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
 var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
-function puzzleImport(puzzle){
+function puzzleImport(puzzle) {
   boardsize.col = +puzzle[0]
   boardsize.row = +puzzle[1]
-  cursor.i=+puzzle[2]
-  cursor.j=+puzzle[3]
+  cursor.pos = [+puzzle[2],+puzzle[3]]
   let board = puzzle.slice(4)
   range(boardsize.col).forEach(i => {
     range(boardsize.row).forEach(j => {
       let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + boardsize.col * j] }
-      tiles.set(tile.infotext, new Tile(tile));
+      tiles.set(tile.infotext, tile);
     });
   });
 }
 
-class Cursor extends GridBox {
-  constructor(cursor, strokeStyle = "lime") {
-    super();
-    this.pos = cursor.pos
-    this.strokeStyle = strokeStyle;
-  }
-  getTopleft() {
-    return super.getTopleft(this.pos)
-  }
-  getBox(margin) {
-    return super.getBox(margin, this.getTopleft())
-  }
-  draw() {
-    let margin = 15;
-    let [x, y] = this.getTopleft()
-    let box = this.getBox(margin)
-    let ctx = canvas.getContext("2d");
-    ctx.strokeStyle = this.strokeStyle;
-    ctx.strokeRect(...box);
-  }
+
+function isOutOfBound(i, j) {
+  return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
 }
-var cursorData = {pos:[1,2]}
-var cursor = new Cursor(cursorData);
+
 function getNextTo(i, j) {
   var result = []
-  function isOutOfBound(i, j) {
-    return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
-  }
   if (isOutOfBound(i, j)) { return result }
   if (!isOutOfBound(i + 1, j)) { result.push([i + 1, j]) }
   if (!isOutOfBound(i - 1, j)) { result.push([i - 1, j]) }
@@ -134,10 +113,10 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   tiles.forEach(tile => {
-    tile.draw();
+    Tile.draw(tile);
   });
 
-  cursor.draw();
+  Cursor.draw(cursor);
 }
 
 function update() {
@@ -184,16 +163,16 @@ const progression = document.getElementById('progression');
 
 var controller = {};
 controller.stepRight = function () {
-  cursor.i += 1;
+  cursor.pos[0] += 1;
 };
 controller.stepLeft = function () {
-  cursor.i -= 1;
+  cursor.pos[0] -= 1;
 };
 controller.stepUp = function () {
-  cursor.j -= 1;
+  cursor.pos[1] -= 1;
 };
 controller.stepDown = function () {
-  cursor.j += 1;
+  cursor.pos[1] += 1;
 };
 controller.stepX = function () { };
 
