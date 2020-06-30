@@ -1,16 +1,11 @@
 const canvas = document.getElementById("canvas");
 var tilesize = { w: 50, h: 50 };
-var boardsize = { col: 4, row: 4 };
+var boardsize = { col: 6, row: 6 };
 
-class Tile {
-  constructor(i, j, infotext = `${i}.${j}`) {
-    this.i = i;
-    this.j = j;
-    this.infotext = infotext;
-  }
-  getTopleft() {
+class GridBox {
+  static getTopleft(tileIndex) {
     let canvasCenter = [canvas.width / 2, canvas.height / 2];
-    let tileIndex = [this.i, this.j];
+    // let tileIndex = [this.i, this.j];
     let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
     let tileSize = [tilesize.w, tilesize.h];
 
@@ -21,8 +16,8 @@ class Tile {
   }
 
   //shrink half-margin for all sides
-  getBox(margin) {
-    let [x, y] = this.getTopleft()
+  static getBox(margin, topleft) {
+    let [x, y] = topleft
     return [
       x + margin / 2,
       y + margin / 2,
@@ -30,15 +25,22 @@ class Tile {
       tilesize.h - margin
     ]
   }
-  getCenter() {
-    let tileSize = [tilesize.w, tilesize.h];
-    let pos = this.getTopleft()
-    return [0, 1].map(i => pos[i] + tileSize[i] / 2);
+}
+
+class Tile extends GridBox {
+  static getBox(margin, pos) {
+    return super.getBox(margin, this.getTopleft(pos))
   }
-  draw() {
+  static getCenter(pos) {
+    let tileSize = [tilesize.w, tilesize.h];
+    let topleft = this.getTopleft(pos)
+    return [0, 1].map(i => topleft[i] + tileSize[i] / 2);
+  }
+  static draw(tiledata) {
+    let { pos: pos, infotext: infotext, tiletext: tiletext } = tiledata
     let margin = 10;
-    let [x, y] = this.getTopleft()
-    let box = this.getBox(margin)
+    let [x, y] = this.getTopleft(pos)
+    let box = this.getBox(margin, pos)
     let ctx = canvas.getContext("2d");
     ctx.fillStyle = "lightgreen";
     ctx.strokeStyle = "black";
@@ -46,51 +48,58 @@ class Tile {
     ctx.font = "10px D2Coding";
     ctx.textBaseline = "bottom";
     ctx.textAlign = "left";
-    ctx.fillText(this.infotext, ...box.slice(0,2));
+    ctx.fillText(infotext, ...box.slice(0, 2));
     ctx.font = "30px D2Coding";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("CD", ...this.getCenter());
+    ctx.fillText(tiletext, ...this.getCenter(pos));
   }
 }
 
-var tiles = [];
+class Cursor extends GridBox {
+  static getBox(margin, pos) {
+    return GridBox.getBox(margin, this.getTopleft(pos))
+  }
+  static draw(cursor) {
+    let pos = cursor.pos
+    let margin = 15;
+    let [x, y] = this.getTopleft(pos)
+    let box = this.getBox(margin, pos)
+    let ctx = canvas.getContext("2d");
+    ctx.strokeStyle = cursor.strokeStyle || "lime";
+    ctx.strokeRect(...box);
+  }
+}
+var cursor = { pos: [0, 0] }
+var cursorLog = []
+
+var tiles = new Map();
 function range(n) {
   return [...Array(n).keys()];
 }
-range(boardsize.col).forEach(i => {
-  range(boardsize.row).forEach(j => {
-    tiles.push(new Tile(i, j));
-  });
-});
 
-class Cursor {
-  constructor(i, j, strokeStyle = "lime") {
-    this.i = i;
-    this.j = j;
-    this.strokeStyle = strokeStyle;
-  }
-  draw() {
-    let margin = 10;
-    let x = canvas.width / 2 + (this.i - boardsize.col / 2) * tilesize.w;
-    let y = canvas.height / 2 + (this.j - boardsize.row / 2) * tilesize.h;
-    let ctx = canvas.getContext("2d");
-    ctx.strokeStyle = this.strokeStyle;
-    ctx.strokeRect(
-      x + margin / 2 + margin / 2 / 2,
-      y + margin / 2 + margin / 2 / 2,
-      tilesize.w - margin - margin / 2,
-      tilesize.h - margin - margin / 2
-    );
-  }
+var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
+var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
+function puzzleImport(puzzle) {
+  boardsize.col = +puzzle[0]
+  boardsize.row = +puzzle[1]
+  cursor.pos = [+puzzle[2], +puzzle[3]]
+  let board = puzzle.slice(4)
+  range(boardsize.col).forEach(i => {
+    range(boardsize.row).forEach(j => {
+      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + boardsize.col * j] }
+      tiles.set(tile.infotext, tile);
+    });
+  });
 }
 
-var cursor = new Cursor(1, 2);
+
+function isOutOfBound(i, j) {
+  return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
+}
+
 function getNextTo(i, j) {
   var result = []
-  function isOutOfBound(i, j) {
-    return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
-  }
   if (isOutOfBound(i, j)) { return result }
   if (!isOutOfBound(i + 1, j)) { result.push([i + 1, j]) }
   if (!isOutOfBound(i - 1, j)) { result.push([i - 1, j]) }
@@ -105,30 +114,133 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   tiles.forEach(tile => {
-    tile.draw();
+    Tile.draw(tile);
   });
 
-  cursor.draw();
+  Cursor.draw(cursor);
 }
 
 function update() {
   draw();
 }
+puzzleImport(puzzle1)
+
+function renderRomanNumeral(n) {
+  const units = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX']
+  const tens = ['', 'X', 'XX', 'XXX', 'XL', 'L', 'LX', 'LXX', 'LXXX', 'XC']
+  const hundreds = ['', 'C', 'CC', 'CCC', 'CD', 'D', 'DC', 'DCC', 'DCCC', 'CM']
+  const thousands = ['', 'M', 'MM', 'MMM']
+  let digit = [...('' + n)]
+  let result = ''
+
+  result = units[digit.pop()] + result
+  if (digit.length == 0) { return result }
+  result = tens[digit.pop()] + result
+  if (digit.length == 0) { return result }
+  result = hundreds[digit.pop()] + result
+  if (digit.length == 0) { return result }
+  result = thousands[digit.pop()] + result
+
+  return result
+}
+
+function* getNextCount() {
+  let now = 1;
+  // let separator = '■'
+  let separator = '.'
+  while (1) {
+    yield renderRomanNumeral(now) + separator
+    now += 1
+  }
+}
+var counter = getNextCount()
+var level = ['Start!', counter.next().value, counter.next().value]
+const levelStart = 1
+const initialState = { mylevel: levelStart, step: 0 }
+var state = { ...initialState }
+var stateLog = [{ ...state }]
+
+const progression = document.getElementById('progression');
 
 var controller = {};
 controller.stepRight = function () {
-  cursor.i += 1;
+  controller.stepX('right')
 };
 controller.stepLeft = function () {
-  cursor.i -= 1;
+  controller.stepX('left')
 };
 controller.stepUp = function () {
-  cursor.j -= 1;
+  controller.stepX('up')
 };
 controller.stepDown = function () {
-  cursor.j += 1;
+  controller.stepX('down')
 };
-controller.stepX = function () { };
+controller.stepX = function (direction) {
+  let pos = [...cursor.pos]
+  switch (direction) {
+    case 'right':
+      pos[0] += 1
+      break;
+    case 'left':
+      pos[0] -= 1
+      break;
+    case 'up':
+      pos[1] -= 1
+      break;
+    case 'down':
+      pos[1] += 1
+      break;
+  }
+  if (isOutOfBound(...pos)
+    || level[state.mylevel][state.step] != tiles.get(`${pos[0]}.${pos[1]}`).tiletext) {
+    console.log('Nope!')
+  }
+  else {
+    cursorLog.push([...cursor.pos])
+    cursor.pos = pos
+    controller.nextStep()
+  }
+};
+
+function renderProgress() {
+  let mylevel = state.mylevel
+  let pastText = level[mylevel - 1]
+  let levelText = level[mylevel]
+  let nextText = level[mylevel + 1]
+  document.getElementById('level').innerText = 'Level: '+mylevel
+  progression.innerHTML = ''
+    + `<div class='past'>Last Level: ${pastText}<br></div>`
+    + `<div class='passed'>Pass: ${levelText.slice(0, state.step)}<br></div>`
+    + `<div class='now'>Left: ${levelText.slice(state.step)}<br></div>`
+    + `<div class='next'>Next Level: ${nextText}</div>`
+}
+
+controller.nextStep = function () {
+  state.step += 1
+
+  // move on next level
+  if (state.step == level[state.mylevel].length) {
+    state.step = 0
+    state.mylevel += 1
+    level.push(counter.next().value)
+  }
+
+  // // prepare next level if mylevel exceeded
+  // if (state.mylevel == level.length) {
+  //   level.push(counter.next().value)
+  // }
+  stateLog.push({ ...state })
+  renderProgress()
+}
+controller.rollBack = function () {
+  stateLog.pop()
+  if (stateLog.length == 0) { stateLog.push(initialState) }
+  state = { ...stateLog[stateLog.length - 1] }
+  if (cursorLog.length>0){
+    cursor.pos = cursorLog.pop()
+  }
+  renderProgress()
+}
 
 window.setInterval(update, 50);
 
@@ -146,7 +258,11 @@ function keydownHandler(e) {
     case "ArrowDown":
       controller.stepDown();
       break;
+    case "Space":
+      // controller.nextStep();
+      break;
     case "KeyZ":
+      controller.rollBack();
       break;
     default:
       break;
@@ -154,3 +270,5 @@ function keydownHandler(e) {
 }
 
 window.addEventListener("keydown", keydownHandler);
+
+renderProgress();
