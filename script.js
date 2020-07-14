@@ -2,13 +2,33 @@ const canvas = document.getElementById("canvas");
 var tilesize = { w: 50, h: 50 };
 var boardsize = { col: 6, row: 6 };
 
+
+// (...a->b)->(...Array(a)->Array(b))
+//> liftArray(a=>a+3)([0,1,2,10])
+//< [3, 4, 5, 13]
+//> liftArray((a,b)=>(a+b))([0,1,2],[10,20])
+//< [10, 21, NaN]
+//> liftArray((a,b)=>(a+b))([0,1,2],[10,20,30,40],[9,9])
+//< [10, 21, 32]
+//> liftArray((a,b,c)=>(a+b+c))([0,1,2],[10,20,30,40])
+//< [NaN, NaN, NaN]
+//> liftArray(Math.max)([1,9,1,1],[99,1,1],[99,1,99,100,100])
+//< [99, 9, 99, NaN]
+function liftArray(f) {
+  function newfunc(...args) {
+    let l = [...Array(args[0].length).keys()]
+    return l.map(i => f(...args.map(arg => arg[i])))
+  }
+  return newfunc
+}
+
 class GridBox {
   static getTopleft(tileIndex) {
     let canvasCenter = [canvas.width / 2, canvas.height / 2];
-    // let tileIndex = [this.i, this.j];
     let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
     let tileSize = [tilesize.w, tilesize.h];
 
+    // let indexOffset = liftArray((a, b) => a - b)(tileIndex, boardHalfway);
     let indexOffset = [0, 1].map(i => tileIndex[i] - boardHalfway[i]);
     let offset = [0, 1].map(i => indexOffset[i] * tileSize[i]);
     let pos = [0, 1].map(i => canvasCenter[i] + offset[i]);
@@ -62,12 +82,15 @@ class Cursor extends GridBox {
   }
   static draw(cursor) {
     let pos = cursor.pos
-    let margin = 15;
+    let margin = 20;
     let [x, y] = this.getTopleft(pos)
     let box = this.getBox(margin, pos)
     let ctx = canvas.getContext("2d");
-    ctx.strokeStyle = cursor.strokeStyle || "lime";
+    ctx.save()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = cursor.strokeStyle ?? "white";
     ctx.strokeRect(...box);
+    ctx.restore()
   }
 }
 var cursor = { pos: [0, 0] }
@@ -207,7 +230,7 @@ function renderProgress() {
   let pastText = level[mylevel - 1]
   let levelText = level[mylevel]
   let nextText = level[mylevel + 1]
-  document.getElementById('level').innerText = 'Level: '+mylevel
+  document.getElementById('level').innerText = 'Level: ' + mylevel
   progression.innerHTML = ''
     + `<div class='past'>Last Level: ${pastText}<br></div>`
     + `<div class='passed'>Pass: ${levelText.slice(0, state.step)}<br></div>`
@@ -236,7 +259,7 @@ controller.rollBack = function () {
   stateLog.pop()
   if (stateLog.length == 0) { stateLog.push(initialState) }
   state = { ...stateLog[stateLog.length - 1] }
-  if (cursorLog.length>0){
+  if (cursorLog.length > 0) {
     cursor.pos = cursorLog.pop()
   }
   renderProgress()
