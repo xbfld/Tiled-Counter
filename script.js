@@ -97,6 +97,7 @@ Cursor.ctx = CANVAS.getContext("2d");
 
 var cursor = { pos: [0, 0] }
 var cursorLog = []
+var cursor_initial =  { pos: [0, 0] }
 
 var tiles = new Map();
 function range(n) {
@@ -109,7 +110,8 @@ function puzzleImport(puzzle) {
   BOARD_SIZE.col = +puzzle[0]
   BOARD_SIZE.row = +puzzle[1]
   GridBox.gridSize = [+puzzle[0], +puzzle[1]]
-  cursor.pos = [+puzzle[2], +puzzle[3]]
+  cursor_initial = [+puzzle[2], +puzzle[3]]
+  cursor.pos = [...cursor_initial]
   let board = puzzle.slice(4)
   range(BOARD_SIZE.col).forEach(i => {
     range(BOARD_SIZE.row).forEach(j => {
@@ -271,6 +273,13 @@ controller.rollBack = function () {
   }
   renderProgress()
 }
+controller.reset = function(){
+  stateLog = [initialState]
+  state = {...initialState}
+  cursor.pos = [...cursor_initial]
+  cursorLog = []
+  renderProgress()
+}
 
 window.setInterval(update, 50);
 
@@ -293,6 +302,9 @@ function keydownHandler(e) {
       break;
     case "KeyZ":
       controller.rollBack();
+      break;
+    case "KeyR":
+      controller.reset();
       break;
     default:
       break;
