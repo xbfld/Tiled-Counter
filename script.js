@@ -24,11 +24,11 @@ function liftArray(f) {
 }
 
 class GridBox {
-  static getTopleft(cellIndex, gridCenter = CANVAS_CENTER) {
+  static getTopleft(cellIndex) {
     let boardHalfway = [0, 1].map(i => this.gridSize[i] / 2);
     let indexOffset = [0, 1].map(i => cellIndex[i] - boardHalfway[i]);
     let offset = [0, 1].map(i => indexOffset[i] * this.cellSize[i]);
-    let pos = [0, 1].map(i => gridCenter[i] + offset[i]);
+    let pos = [0, 1].map(i => this.center[i] + offset[i]);
     return pos
   }
 
@@ -46,6 +46,7 @@ class GridBox {
 GridBox.cellSize = [...TILE_SIZE];
 //gridSize will be reimported on puzzle importing stage
 GridBox.gridSize = [BOARD_SIZE.col, BOARD_SIZE.row];
+GridBox.center = [...CANVAS_CENTER]
 
 class Tile extends GridBox {
   static getBox(pos, margin) {
