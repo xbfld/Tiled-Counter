@@ -1,6 +1,7 @@
-const canvas = document.getElementById("canvas");
-var tilesize = { w: 50, h: 50 };
-var boardsize = { col: 6, row: 6 };
+const CANVAS = document.getElementById("canvas");
+const CANVAS_CENTER = [CANVAS.width / 2, CANVAS.height / 2]
+var TILE_SIZE = [50, 50];//[width, height]
+var BOARD_SIZE = { col: 6, row: 6 };
 
 
 // (...a->b)->(...Array(a)->Array(b))
@@ -23,45 +24,43 @@ function liftArray(f) {
 }
 
 class GridBox {
-  static getTopleft(tileIndex) {
-    let canvasCenter = [canvas.width / 2, canvas.height / 2];
-    let boardHalfway = [boardsize.col / 2, boardsize.row / 2];
-    let tileSize = [tilesize.w, tilesize.h];
-
-    // let indexOffset = liftArray((a, b) => a - b)(tileIndex, boardHalfway);
-    let indexOffset = [0, 1].map(i => tileIndex[i] - boardHalfway[i]);
-    let offset = [0, 1].map(i => indexOffset[i] * tileSize[i]);
-    let pos = [0, 1].map(i => canvasCenter[i] + offset[i]);
+  static getTopleft(cellIndex, gridCenter = CANVAS_CENTER) {
+    let boardHalfway = [0, 1].map(i => this.gridSize[i] / 2);
+    let indexOffset = [0, 1].map(i => cellIndex[i] - boardHalfway[i]);
+    let offset = [0, 1].map(i => indexOffset[i] * this.cellSize[i]);
+    let pos = [0, 1].map(i => gridCenter[i] + offset[i]);
     return pos
   }
 
   //shrink half-margin for all sides
-  static getBox(margin, topleft) {
+  static getBox(topleft, margin) {
     let [x, y] = topleft
     return [
       x + margin / 2,
       y + margin / 2,
-      tilesize.w - margin,
-      tilesize.h - margin
+      this.cellSize[0] - margin,
+      this.cellSize[1] - margin
     ]
   }
 }
+GridBox.cellSize = [...TILE_SIZE];
+//gridSize will be reimported on puzzle importing stage
+GridBox.gridSize = [BOARD_SIZE.col, BOARD_SIZE.row];
 
 class Tile extends GridBox {
-  static getBox(margin, pos) {
-    return super.getBox(margin, this.getTopleft(pos))
+  static getBox(pos, margin) {
+    return super.getBox(this.getTopleft(pos), margin)
   }
   static getCenter(pos) {
-    let tileSize = [tilesize.w, tilesize.h];
-    let topleft = this.getTopleft(pos)
-    return [0, 1].map(i => topleft[i] + tileSize[i] / 2);
+    let [x, y, w, h] = this.getBox(pos, 0)
+    return [x + w / 2, y + h / 2]
   }
   static draw(tiledata) {
     let { pos: pos, infotext: infotext, tiletext: tiletext } = tiledata
     let margin = 10;
     let [x, y] = this.getTopleft(pos)
-    let box = this.getBox(margin, pos)
-    let ctx = canvas.getContext("2d");
+    let box = this.getBox(pos, margin)
+    let ctx = this.ctx
     ctx.fillStyle = "lightgreen";
     ctx.strokeStyle = "black";
     ctx.strokeRect(...box);
@@ -75,17 +74,18 @@ class Tile extends GridBox {
     ctx.fillText(tiletext, ...this.getCenter(pos));
   }
 }
+Tile.ctx = CANVAS.getContext("2d");
 
 class Cursor extends GridBox {
-  static getBox(margin, pos) {
-    return GridBox.getBox(margin, this.getTopleft(pos))
+  static getBox(pos, margin) {
+    return super.getBox(this.getTopleft(pos), margin)
   }
   static draw(cursor) {
     let pos = cursor.pos
     let margin = 20;
     let [x, y] = this.getTopleft(pos)
-    let box = this.getBox(margin, pos)
-    let ctx = canvas.getContext("2d");
+    let box = this.getBox(pos, margin)
+    let ctx = this.ctx
     ctx.save()
     ctx.lineWidth = 3
     ctx.strokeStyle = cursor.strokeStyle ?? "white";
@@ -93,6 +93,8 @@ class Cursor extends GridBox {
     ctx.restore()
   }
 }
+Cursor.ctx = CANVAS.getContext("2d");
+
 var cursor = { pos: [0, 0] }
 var cursorLog = []
 
@@ -104,13 +106,14 @@ function range(n) {
 var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
 var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
 function puzzleImport(puzzle) {
-  boardsize.col = +puzzle[0]
-  boardsize.row = +puzzle[1]
+  BOARD_SIZE.col = +puzzle[0]
+  BOARD_SIZE.row = +puzzle[1]
+  GridBox.gridSize = [+puzzle[0], +puzzle[1]]
   cursor.pos = [+puzzle[2], +puzzle[3]]
   let board = puzzle.slice(4)
-  range(boardsize.col).forEach(i => {
-    range(boardsize.row).forEach(j => {
-      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + boardsize.col * j] }
+  range(BOARD_SIZE.col).forEach(i => {
+    range(BOARD_SIZE.row).forEach(j => {
+      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + BOARD_SIZE.col * j] }
       tiles.set(tile.infotext, tile);
     });
   });
@@ -118,7 +121,7 @@ function puzzleImport(puzzle) {
 
 
 function isOutOfBound(i, j) {
-  return i < 0 || j < 0 || i >= boardsize.col || j >= boardsize.row
+  return i < 0 || j < 0 || i >= BOARD_SIZE.col || j >= BOARD_SIZE.row
 }
 
 function getNextTo(i, j) {
@@ -132,9 +135,9 @@ function getNextTo(i, j) {
 }
 
 function draw() {
-  let ctx = canvas.getContext("2d");
+  let ctx = CANVAS.getContext("2d");
   ctx.fillStyle = "rgb(104, 153, 185)"; // Pythagorean triple
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, CANVAS.width, CANVAS.height);
 
   tiles.forEach(tile => {
     Tile.draw(tile);
@@ -214,8 +217,12 @@ controller.stepX = function (direction) {
       pos[1] += 1
       break;
   }
+  function isValidSymbol() {
+    return level[state.mylevel][state.step]
+      == tiles.get(`${pos[0]}.${pos[1]}`).tiletext
+  }
   if (isOutOfBound(...pos)
-    || level[state.mylevel][state.step] != tiles.get(`${pos[0]}.${pos[1]}`).tiletext) {
+    || !isValidSymbol()) {
     console.log('Nope!')
   }
   else {
