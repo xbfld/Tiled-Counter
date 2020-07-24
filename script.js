@@ -1,55 +1,52 @@
 const CANVAS = document.getElementById("canvas");
 const CANVAS_CENTER = [CANVAS.width / 2, CANVAS.height / 2]
+var game = {boardSize : new Array(2)}
 var TILE_SIZE = [50, 50];//[width, height]
 var BOARD_SIZE = { col: 6, row: 6 };
-
-GridBox.cellSize = [...TILE_SIZE];
-//gridSize will be reimported on puzzle importing stage
-GridBox.gridSize = [BOARD_SIZE.col, BOARD_SIZE.row];
-GridBox.center = [...CANVAS_CENTER]
-
-Tile.ctx = CANVAS.getContext("2d");
-
-Cursor.ctx = CANVAS.getContext("2d");
 
 var cursor = { pos: [0, 0] }
 var cursorLog = []
 var cursor_initial = { pos: [0, 0] }
 
 var tiles = new Map();
-function range(n) {
-  return [...Array(n).keys()];
-}
 
 var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
 var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
 function puzzleImport(puzzle) {
-  BOARD_SIZE.col = +puzzle[0]
-  BOARD_SIZE.row = +puzzle[1]
-  GridBox.gridSize = [+puzzle[0], +puzzle[1]]
+  game.boardSize[0] = BOARD_SIZE.col = +puzzle[0]
+  game.boardSize[1] = BOARD_SIZE.row = +puzzle[1]
+  GridBox.gridSize = [...game.boardSize]
   cursor_initial = [+puzzle[2], +puzzle[3]]
   cursor.pos = [...cursor_initial]
-  let board = puzzle.slice(4)
-  range(BOARD_SIZE.col).forEach(i => {
-    range(BOARD_SIZE.row).forEach(j => {
-      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + BOARD_SIZE.col * j] }
+	let board = puzzle.slice(4)
+	
+  range(game.boardSize[0]).forEach(i => {
+    range(game.boardSize[1]).forEach(j => {
+      let tile = { pos: [i, j], infotext: `${i}.${j}`, tiletext: board[i + game.boardSize[0] * j] }
       tiles.set(tile.infotext, tile);
     });
   });
 }
 
+GridBox.cellSize = [...TILE_SIZE];
+//gridSize will be reimported on puzzle importing stage
+// GridBox.gridSize = [...game.boardSize];
+GridBox.center = [...CANVAS_CENTER]
 
-function isOutOfBound(i, j) {
-  return i < 0 || j < 0 || i >= BOARD_SIZE.col || j >= BOARD_SIZE.row
+Tile.ctx = CANVAS.getContext("2d");
+Cursor.ctx = CANVAS.getContext("2d");
+
+function isOnBoard(i, j) {
+  return !(i < 0 || j < 0 || i >= BOARD_SIZE.col || j >= BOARD_SIZE.row)
 }
 
 function getNextTo(i, j) {
   var result = []
-  if (isOutOfBound(i, j)) { return result }
-  if (!isOutOfBound(i + 1, j)) { result.push([i + 1, j]) }
-  if (!isOutOfBound(i - 1, j)) { result.push([i - 1, j]) }
-  if (!isOutOfBound(i, j + 1)) { result.push([i, j + 1]) }
-  if (!isOutOfBound(i, j - 1)) { result.push([i, j - 1]) }
+  if (!isOnBoard(i, j)) { return result }
+  if (isOnBoard(i + 1, j)) { result.push([i + 1, j]) }
+  if (isOnBoard(i - 1, j)) { result.push([i - 1, j]) }
+  if (isOnBoard(i, j + 1)) { result.push([i, j + 1]) }
+  if (isOnBoard(i, j - 1)) { result.push([i, j - 1]) }
   return result
 }
 
@@ -140,7 +137,7 @@ controller.stepX = function (direction) {
     return level[state.mylevel][state.step]
       == tiles.get(`${pos[0]}.${pos[1]}`).tiletext
   }
-  if (isOutOfBound(...pos)
+  if (!isOnBoard(...pos)
     || !isValidSymbol()) {
     console.log('Nope!')
   }

@@ -19,3 +19,8 @@ function liftArray(f) {
   return newfunc
 }
 self.liftArray = liftArray
+
+function range(n) {
+  return [...Array(n).keys()];
+}
+self.range = range
