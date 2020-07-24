@@ -1,8 +1,6 @@
 const CANVAS = document.getElementById("canvas");
 const CANVAS_CENTER = [CANVAS.width / 2, CANVAS.height / 2]
 var game = {boardSize : new Array(2)}
-var TILE_SIZE = [50, 50];//[width, height]
-var BOARD_SIZE = { col: 6, row: 6 };
 
 var cursor = { pos: [0, 0] }
 var cursorLog = []
@@ -13,8 +11,7 @@ var tiles = new Map();
 var puzzle0 = "7733IIXV.LXXL.IXVI.IVIX.XLIX.VIXX.XIXI.LIVL.XXVI.XIXL"
 var puzzle1 = "7734VL.IILV.IVL.XLXX.XIL.VIIXLIXI.V.VILVXXII.XII.VIVL"
 function puzzleImport(puzzle) {
-  game.boardSize[0] = BOARD_SIZE.col = +puzzle[0]
-  game.boardSize[1] = BOARD_SIZE.row = +puzzle[1]
+  game.boardSize = [+puzzle[0],+puzzle[1]]
   GridBox.gridSize = [...game.boardSize]
   cursor_initial = [+puzzle[2], +puzzle[3]]
   cursor.pos = [...cursor_initial]
@@ -28,7 +25,7 @@ function puzzleImport(puzzle) {
   });
 }
 
-GridBox.cellSize = [...TILE_SIZE];
+GridBox.cellSize = [50,50];
 //gridSize will be reimported on puzzle importing stage
 // GridBox.gridSize = [...game.boardSize];
 GridBox.center = [...CANVAS_CENTER]
@@ -37,7 +34,7 @@ Tile.ctx = CANVAS.getContext("2d");
 Cursor.ctx = CANVAS.getContext("2d");
 
 function isOnBoard(i, j) {
-  return !(i < 0 || j < 0 || i >= BOARD_SIZE.col || j >= BOARD_SIZE.row)
+  return !(i < 0 || j < 0 || i >= game.boardSize[0] || j >= game.boardSize[1])
 }
 
 function getNextTo(i, j) {
